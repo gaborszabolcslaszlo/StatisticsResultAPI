@@ -1,24 +1,15 @@
 # generate_images.py
 import sys
-from PIL import Image, ImageDraw
-from datetime import datetime
 import os
+from PIL import Image, ImageDraw
 
-def generate_image(date_string):
-    output_dir = "output"
-    os.makedirs(output_dir, exist_ok=True)
+date = sys.argv[1]
+folder = 'images'
+os.makedirs(folder, exist_ok=True)
 
-    img = Image.new("RGB", (200, 100), color=(73, 109, 137))
+# Dummy kép generálás (teszt)
+for i in range(3):
+    img = Image.new('RGB', (200, 100), color=(73, 109, 137))
     d = ImageDraw.Draw(img)
-    d.text((10, 40), f"Date: {date_string}", fill=(255, 255, 0))
-
-    file_path = os.path.join(output_dir, f"{date_string}.jpg")
-    img.save(file_path)
-    print(file_path)
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python generate_images.py <date>", file=sys.stderr)
-        sys.exit(1)
-
-    generate_image(sys.argv[1])
+    d.text((10, 10), f"{date} - Kép {i+1}", fill=(255, 255, 0))
+    img.save(f'{folder}/image_{i+1}.jpg')

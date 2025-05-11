@@ -1,33 +1,48 @@
-const express = require("express");
-const { execFile } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+const express = require('express');
+const bodyParser = require('body-parser');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
-app.use(express.json());
+const PORT = 3000;
 
-app.get("/getCalculateDate", (req, res) => {
+// Használjuk a 'public/images' mappát statikus fájlokhoz
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use(bodyParser.json());
+
+app.post('/getCalculateDate', (req, res) => {
     const date = req.body.date;
-    if (!date) return res.status(400).json({ error: "Missing date" });
 
-    const script = "generate_images.py";
+    if (!date) {
+        return res.status(400).json({ error: 'Missing date parameter' });
+    }
 
-    execFile("python3", [script, date], (error, stdout, stderr) => {
+    // 1. Lefuttatjuk a python scriptet
+    exec(`python3 generate_images.py "${date}"`, (error, stdout, stderr) => {
         if (error) {
-            console.error(stderr);
-            return res.status(500).json({ error: "Python script failed" });
+            console.error(`Hiba a Python script futtatásakor: ${stderr}`);
+            return res.status(500).json({ error: 'Hiba a képgenerálás közben' });
         }
 
-        const imagePath = stdout.trim();
-        fs.readFile(imagePath, (err, data) => {
-            if (err) return res.status(500).json({ error: "Image read failed" });
+        // 2. Listázzuk az összes képet a mappában
+        const imageFolder = path.join(__dirname, 'images');
+        fs.readdir(imageFolder, (err, files) => {
+            if (err) {
+                console.error('Nem sikerült listázni a képeket:', err);
+                return res.status(500).json({ error: 'Nem sikerült listázni a képeket' });
+            }
 
-            res.setHeader("Content-Type", "image/jpeg");
-            res.send(data);
+            // Csak JPG/JPEG képeket adunk vissza
+            const imageUrls = files
+                .filter(file => /\.(jpg|jpeg|png)$/i.test(file))
+                .map(file => `http://localhost:${PORT}/images/${file}`);
+
+            return res.json({ images: imageUrls });
         });
     });
 });
 
-app.listen(3000, () => {
-    console.log("Server running at http://localhost:3000");
+app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
 });
